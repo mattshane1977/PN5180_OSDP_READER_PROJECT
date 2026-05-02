@@ -17,14 +17,16 @@ esp_err_t pn5180_load_rf_config(uint8_t tx_idx, uint8_t rx_idx)
 
 esp_err_t pn5180_rf_on(uint8_t config_idx)
 {
-    /* RF_ON command: 0x16 | flags(1).
-     * Bit 0 of flags = collision avoidance enable. We want it on for a real
-     * reader. */
-    uint8_t f[2] = { PN5180_CMD_RF_ON, 0x01 };
+    pn5180_write_register(PN5180_REG_IRQ_CLEAR, 0xFFFFFFFF);
+
+    uint8_t f[2] = { PN5180_CMD_RF_ON, 0x00 };
     esp_err_t e = pn5180_send_command(f, sizeof(f), NULL, 0, NULL);
     if (e != ESP_OK) return e;
-    /* The chip raises IRQ_RF_ON when the field has stabilized. */
-    return pn5180_wait_irq(PN5180_IRQ_RF_ON, 100);
+
+    /* Give the field 5 ms to stabilize, then let the caller's REQA/TX_DONE
+     * confirm whether RF is actually on. */
+    vTaskDelay(pdMS_TO_TICKS(5));
+    return ESP_OK;
 }
 
 esp_err_t pn5180_rf_off(void)

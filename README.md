@@ -321,6 +321,12 @@ The on-board WS2812B RGB LED (GPIO 48) provides visual feedback without any exte
 
 ## Changelog
 
+### v0.2.0 — 2026-05-02
+**Fix: PN5180 RF field never activating — cards not read on first board bring-up.**
+- Fixed `PN5180_IRQ_RF_ON` bit assignment (was `1<<7`, correct value is `1<<6` per datasheet TX_RFON_IRQ_STAT). The v0.1.0 release waited for a bit that never fires, causing `pn5180_rf_on()` to always time out and bail before REQA was sent.
+- Replaced the IRQ-based RF field ready wait with a 5 ms stabilization delay; simpler and avoids re-triggering the issue if IRQ enable masks change.
+- Fixed `PN5180_IRQ_RF_OFF` bit assignment (was `1<<6`, correct value is `1<<5` per datasheet TX_RFOFF_IRQ_STAT).
+
 ### v0.1.0 — 2026-05-01
 **Initial release.**
 - Project scaffolded from scratch on ESP-IDF v5.x targeting ESP32-S3.

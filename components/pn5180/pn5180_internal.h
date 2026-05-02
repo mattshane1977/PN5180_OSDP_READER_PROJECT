@@ -54,8 +54,8 @@
 #define PN5180_IRQ_RX_DONE                 (1 << 0)
 #define PN5180_IRQ_TX_DONE                 (1 << 1)
 #define PN5180_IRQ_IDLE                    (1 << 2)
-#define PN5180_IRQ_RF_OFF                  (1 << 6)
-#define PN5180_IRQ_RF_ON                   (1 << 7)
+#define PN5180_IRQ_RF_OFF                  (1 << 5)   /* TX_RFOFF_IRQ_STAT */
+#define PN5180_IRQ_RF_ON                   (1 << 6)   /* TX_RFON_IRQ_STAT  */
 
 /* ------- RF config indices for LOAD_RF_CONFIG ------- */
 

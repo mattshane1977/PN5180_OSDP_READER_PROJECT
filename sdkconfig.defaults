@@ -1,0 +1,31 @@
+# Target
+CONFIG_IDF_TARGET="esp32s3"
+
+# Dual-core: reader on core 1, webui/netconfig on core 0
+CONFIG_FREERTOS_UNICORE=n
+
+# mbedTLS hardware AES + CMAC (DESFire auth)
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_CMAC_C=y
+
+# NVS (plain — enable encryption before production)
+CONFIG_NVS_ENCRYPTION=n
+
+# Stack + log
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Watchdog — crypto paths can be slow
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+
+# Custom partition table
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x10000
+
+# WebSocket support for debug UI
+CONFIG_HTTPD_WS_SUPPORT=y
+
+# NFC driver selection
+CONFIG_NFC_DRIVER_PN5180=y

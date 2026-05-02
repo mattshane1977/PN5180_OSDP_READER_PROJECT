@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PDK Reader</title>
+<style>
+:root {
+  --bg:#0f1115; --surface:#181b22; --surface2:#21252e;
+  --border:#2a2f3a; --text:#e6e8ec; --muted:#8a93a6;
+  --green:#4ade80; --red:#f87171; --amber:#fbbf24; --accent:#60a5fa;
+  --cyan:#22d3ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);
+       display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:15px;font-weight:600;letter-spacing:.03em}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:5px}
+.dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.down{background:var(--red)}
+.hdr-right{margin-left:auto;color:var(--muted);font-size:12px}
+main{max-width:1200px;margin:0 auto;padding:16px;
+     display:grid;grid-template-columns:280px 1fr;gap:16px}
+@media(max-width:760px){main{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px}
+.panel h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+          color:var(--muted);margin-bottom:10px}
+.field{margin-bottom:8px}
+.field label{display:block;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.field input,.field select{width:100%;padding:7px 9px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text);font-family:inherit;
+  border-radius:4px;font-size:13px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+btn{display:block;width:100%;padding:9px;background:var(--accent);color:#fff;
+    border:none;border-radius:4px;font-family:inherit;font-size:13px;
+    cursor:pointer;margin-top:4px;text-align:center}
+button.btn{display:block;width:100%;padding:9px;background:var(--accent);color:#fff;
+    border:none;border-radius:4px;font-family:inherit;font-size:13px;
+    cursor:pointer;margin-top:4px}
+button.btn:hover{filter:brightness(1.1)}
+button.btn.danger{background:var(--red);color:#000}
+button.btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* Card display */
+.card-box{background:var(--bg);border:1px solid var(--border);border-radius:4px;
+          padding:12px;min-height:80px;font-size:13px}
+.card-uid{font-size:16px;font-weight:600;letter-spacing:.08em;color:var(--accent);margin-bottom:6px}
+.card-meta{color:var(--muted);font-size:12px;margin-bottom:10px;line-height:1.7}
+.card-meta span{color:var(--text)}
+.no-card{color:var(--muted);font-style:italic;padding:16px 0;text-align:center}
+.apps-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+            color:var(--muted);margin-top:10px;margin-bottom:6px}
+.app-item{border:1px solid var(--border);border-radius:4px;margin-bottom:6px;overflow:hidden}
+.app-header{background:var(--surface2);padding:6px 10px;
+            display:flex;align-items:center;gap:10px}
+.app-aid{font-weight:600;color:var(--amber);letter-spacing:.06em}
+.app-files{padding:6px 10px 8px;font-size:12px}
+.file-row{display:grid;grid-template-columns:30px 50px 70px 60px 1fr;gap:8px;
+          padding:2px 0;border-bottom:1px solid var(--surface2);align-items:center}
+.file-row:last-child{border-bottom:none}
+.file-id{color:var(--accent)}
+.file-type{color:var(--muted)}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.pill.plain{background:#1a2433;color:var(--muted)}
+.pill.mac{background:#1a3325;color:var(--green)}
+.pill.enc{background:#2d1a33;color:var(--cyan)}
+.access{color:var(--muted);font-size:11px}
+.denied{color:var(--red);font-size:12px;padding:4px 0}
+
+/* Log */
+#log{height:55vh;overflow-y:auto;background:var(--bg);border:1px solid var(--border);
+     border-radius:4px;padding:6px 10px;font-size:12px;line-height:1.5}
+.row{padding:3px 0;border-bottom:1px solid var(--surface2);
+     display:grid;grid-template-columns:62px 80px 1fr;gap:10px}
+.row:last-child{border-bottom:none}
+.t{color:var(--muted)}
+.k{font-weight:600}
+.k.ok{color:var(--green)}.k.err{color:var(--red)}.k.info{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>PDK PN5180 Reader</h1>
+  <span><span id="dot" class="dot down"></span><span id="conn">disconnected</span></span>
+  <div class="hdr-right" id="ip-display"></div>
+</header>
+<main>
+  <div>
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Last Card</h2>
+      <div class="card-box" id="card-display">
+        <div class="no-card">Tap a card...</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>OSDP Config <span style="color:var(--amber);font-size:10px">(Phase 2)</span></h2>
+      <div class="field">
+        <label>PD Address (0–126)</label>
+        <input id="osdp-addr" type="number" value="101" min="0" max="126"/>
+      </div>
+      <div class="field">
+        <label>Baud rate</label>
+        <select id="osdp-baud">
+          <option value="9600" selected>9600</option>
+          <option value="19200">19200</option>
+          <option value="38400">38400</option>
+          <option value="115200">115200</option>
+        </select>
+      </div>
+      <button class="btn secondary" id="btn-osdp">Save OSDP config</button>
+
+      <hr/>
+
+      <h2>WiFi</h2>
+      <div class="field">
+        <label>SSID</label>
+        <input id="wifi-ssid" type="text" placeholder="network name"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="wifi-pass" type="password" placeholder="leave blank for open"/>
+      </div>
+      <button class="btn secondary" id="btn-wifi">Save &amp; reboot</button>
+
+      <hr/>
+      <button class="btn danger" id="btn-reboot">Reboot</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Event log</h2>
+    <div id="log"></div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const log = $("#log");
+let ws = null;
+
+function setConn(ok, ip) {
+  $("#dot").className = "dot " + (ok ? "up" : "down");
+  $("#conn").textContent = ok ? "connected" : "disconnected";
+  if (ip) $("#ip-display").textContent = ip;
+}
+
+function ts() {
+  const d = new Date(), p = n => String(n).padStart(2,"0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function addRow(cls, kind, detail) {
+  const r = document.createElement("div");
+  r.className = "row";
+  r.innerHTML = `<span class="t">${ts()}</span><span class="k ${cls}">${kind}</span><span>${detail}</span>`;
+  log.insertBefore(r, log.firstChild);
+  while (log.children.length > 150) log.removeChild(log.lastChild);
+}
+
+function storageStr(encoded) {
+  if (!encoded) return "?";
+  const bytes = 1 << (encoded >> 1);
+  return bytes >= 1024 ? (bytes / 1024) + "KB" : bytes + "B";
+}
+
+function commPill(comm) {
+  if (comm === "enc")   return `<span class="pill enc">ENC</span>`;
+  if (comm === "mac")   return `<span class="pill mac">MAC</span>`;
+  return `<span class="pill plain">PLAIN</span>`;
+}
+
+function renderCard(ev) {
+  let h = "";
+
+  h += `<div class="card-uid">UID: ${ev.uid}</div>`;
+
+  if (ev.hw) {
+    h += `<div class="card-meta">`;
+    h += `HW: <span>${ev.hw.vendor === 4 ? "NXP" : "0x"+ev.hw.vendor.toString(16)}</span> `;
+    h += `type <span>${ev.hw.type}.${ev.hw.subtype}</span> `;
+    h += `v<span>${ev.hw.ver}</span> `;
+    h += `storage <span>${storageStr(ev.hw.storage_enc)}</span><br/>`;
+    h += `SW: v<span>${ev.sw.ver}</span>`;
+    if (ev.uid_real && ev.uid_real !== ev.uid) {
+      h += `<br/>Real UID: <span>${ev.uid_real}</span>`;
+    }
+    h += `</div>`;
+  }
+
+  if (ev.apps && ev.apps.length > 0) {
+    h += `<div class="apps-label">Applications (${ev.apps.length})</div>`;
+    for (const app of ev.apps) {
+      h += `<div class="app-item">`;
+      h += `<div class="app-header"><span class="app-aid">${app.aid.toUpperCase()}</span>`;
+      h += `<span style="color:var(--muted);font-size:11px">${app.files ? app.files.length + " files" : "auth req."}</span></div>`;
+
+      if (app.files && app.files.length > 0) {
+        h += `<div class="app-files">`;
+        h += `<div class="file-row" style="color:var(--muted);font-size:11px">
+                <span>#</span><span>Type</span><span>Size</span><span>Comm</span><span>Access</span>
+              </div>`;
+        for (const f of app.files) {
+          const typeLabel = {std:"Std",bkp:"Bkp",val:"Val",lin:"Lin",cyc:"Cyc"}[f.type] || f.type;
+          h += `<div class="file-row">
+                  <span class="file-id">${f.id}</span>
+                  <span class="file-type">${typeLabel}</span>
+                  <span>${f.size > 0 ? f.size + "B" : "—"}</span>
+                  <span>${commPill(f.comm)}</span>
+                  <span class="access">${f.ar}</span>
+                </div>`;
+        }
+        h += `</div>`;
+      } else if (app.denied) {
+        h += `<div class="app-files"><div class="denied">Permission denied — authentication required</div></div>`;
+      }
+      h += `</div>`;
+    }
+  } else if (ev.apps) {
+    h += `<div style="color:var(--muted);font-size:12px;margin-top:8px">No applications on card</div>`;
+  }
+
+  $("#card-display").innerHTML = h;
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+    case "status":
+      setConn(true, ev.ip);
+      addRow("info", "status", `driver=${ev.driver} ip=${ev.ip||"?"}`);
+      break;
+    case "card":
+      renderCard(ev);
+      addRow("ok", "CARD", `uid=${ev.uid} apps=${ev.apps ? ev.apps.length : "?"}`);
+      break;
+    case "no_card":
+      $("#card-display").innerHTML = `<div class="no-card">Card removed — tap a card...</div>`;
+      addRow("info", "away", "card left field");
+      break;
+    case "ack":
+      addRow("info", "ack", `${ev.cmd}${ev.detail ? " — "+ev.detail : ""}`);
+      break;
+    case "error":
+      addRow("err", "error", ev.message || JSON.stringify(ev));
+      break;
+    default:
+      addRow("info", ev.type || "?", JSON.stringify(ev).slice(0, 120));
+  }
+}
+
+function send(obj) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    addRow("err", "send", "not connected"); return;
+  }
+  ws.send(JSON.stringify(obj));
+}
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(proto + "//" + location.host + "/ws");
+  ws.onopen  = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
+  ws.onerror = () => {};
+  ws.onmessage = e => {
+    try { handleEvent(JSON.parse(e.data)); }
+    catch(err) { addRow("err", "parse", String(e.data).slice(0,80)); }
+  };
+}
+
+$("#btn-osdp").addEventListener("click", () => {
+  send({ cmd:"osdp_set",
+         address: parseInt($("#osdp-addr").value),
+         baud:    parseInt($("#osdp-baud").value) });
+});
+
+$("#btn-wifi").addEventListener("click", () => {
+  const ssid = $("#wifi-ssid").value.trim();
+  if (!ssid) { addRow("err","wifi","SSID required"); return; }
+  send({ cmd:"wifi_set", ssid, pass: $("#wifi-pass").value });
+});
+
+$("#btn-reboot").addEventListener("click", () => {
+  if (!confirm("Reboot the reader?")) return;
+  send({ cmd:"reboot" });
+});
+
+connect();
+</script>
+</body>
+</html>

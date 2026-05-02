@@ -1,0 +1,9 @@
+menu "PDK Reader"
+
+config NFC_DRIVER_PN5180
+    bool "Use PN5180 NFC driver"
+    default y
+    help
+        Selects the PN5180 SPI NFC frontend. Must match the hardware wired up.
+
+endmenu

@@ -75,18 +75,6 @@ static void play_deny(void)
     }
 }
 
-static void play_wrote_ok(void)
-{
-    for (int i = 0; i < 3; i++) {
-        rgb_set(0, 32, 32);       /* cyan */
-        board_buzzer_set(true);
-        vTaskDelay(pdMS_TO_TICKS(80));
-        rgb_set(0, 0, 0);
-        board_buzzer_set(false);
-        vTaskDelay(pdMS_TO_TICKS(80));
-    }
-}
-
 static void play_error(void)
 {
     board_buzzer_set(true);
@@ -129,14 +117,6 @@ static void indicator_task(void *arg)
             vTaskDelayUntil(&last, pdMS_TO_TICKS(200));
             break;
 
-        case IND_ARMED_WRITE:
-            s_resting = IND_ARMED_WRITE;
-            blink = !blink;
-            rgb_set(blink ? 32 : 0, blink ? 16 : 0, 0);  /* slow amber blink */
-            board_buzzer_set(false);
-            vTaskDelayUntil(&last, pdMS_TO_TICKS(500));
-            break;
-
         case IND_GRANT:
             play_grant();
             atomic_store(&s_pattern, s_resting);
@@ -144,11 +124,6 @@ static void indicator_task(void *arg)
 
         case IND_DENY:
             play_deny();
-            atomic_store(&s_pattern, s_resting);
-            break;
-
-        case IND_WROTE_OK:
-            play_wrote_ok();
             atomic_store(&s_pattern, s_resting);
             break;
 
@@ -201,11 +176,11 @@ button_event_t board_button_poll(void)
 void board_init(void)
 {
     led_strip_config_t strip_cfg = {
-        .strip_gpio_num   = BOARD_PIN_RGB_LED,
-        .max_leds         = 1,
-        .led_pixel_format = LED_PIXEL_FORMAT_GRB,
-        .led_model        = LED_MODEL_WS2812,
-        .flags.invert_out = false,
+        .strip_gpio_num         = BOARD_PIN_RGB_LED,
+        .max_leds               = 1,
+        .led_model              = LED_MODEL_WS2812,
+        .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRB,
+        .flags.invert_out       = false,
     };
     led_strip_rmt_config_t rmt_cfg = {
         .clk_src        = RMT_CLK_SRC_DEFAULT,
